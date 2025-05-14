@@ -97,6 +97,91 @@ A aplicação permite gerar, por exemplo, 1000 ou 10.000 itens aleatórios. O de
 - **Qualidade da Solução:** Em testes preliminares com os conjuntos de dados fornecidos, ambos os algoritmos foram capazes de encontrar boas soluções, frequentemente aproximando-se ou atingindo a solução ótima para casos pequenos. Para casos maiores, a qualidade pode variar dependendo dos parâmetros e do número de iterações/gerações.
 - **Tempo de Execução:** O tempo de execução pode variar. O ACO, com sua construção iterativa de soluções por múltiplas formigas, pode ser mais intensivo computacionalmente por iteração em comparação com uma geração do GA, dependendo do número de formigas e itens.
 
+## Comparação de Complexidade e Parâmetros dos Algoritmos
+
+Nesta seção, apresentamos uma análise comparativa da complexidade computacional dos algoritmos implementados e um exemplo prático de configuração dos parâmetros, explicando o significado de cada sigla e parâmetro utilizado.
+
+### Complexidade Assintótica (Big O)
+
+- **Algoritmo Genético (GA):**  
+  - **Complexidade:** O(g * p * n)  
+    - *g*: número de gerações  
+    - *p*: tamanho da população  
+    - *n*: número de itens  
+  - O tempo de execução cresce linearmente com o número de itens, população e gerações.
+
+- **Algoritmo de Colônia de Formigas (ACO):**  
+  - **Complexidade:** O(t * m * n²)  
+    - *t*: número de iterações  
+    - *m*: número de formigas  
+    - *n*: número de itens  
+  - O tempo de execução cresce quadraticamente com o número de itens, tornando-se mais custoso para instâncias muito grandes.
+
+### Parâmetros dos Algoritmos
+
+#### Algoritmo Genético (GA)
+- **População (p):** Quantidade de soluções candidatas em cada geração.
+- **Gerações (g):** Quantidade de ciclos evolutivos.
+- **Taxa de Crossover:** Probabilidade de recombinação entre dois indivíduos.
+- **Taxa de Mutação:** Probabilidade de alteração de cada gene (bit) de um indivíduo.
+
+#### Algoritmo de Colônia de Formigas (ACO)
+- **Formigas (m):** Número de agentes que constroem soluções em cada iteração.
+- **Iterações (t):** Quantidade de ciclos de construção de soluções.
+- **Alfa (α):** Peso da influência do feromônio na escolha dos itens.
+- **Beta (β):** Peso da influência da heurística (valor/peso) na escolha dos itens.
+- **Taxa de Evaporação:** Proporção do feromônio que evapora a cada iteração.
+- **Q:** Constante de reforço do feromônio.
+- **Feromônio Inicial:** Valor inicial do feromônio em cada item.
+
+### Exemplo Prático de Configuração
+
+Considere um problema com 100 itens e capacidade de mochila definida como 40% do peso total dos itens.
+
+#### Parâmetros sugeridos:
+
+- **GA:**  
+  - População (*p*): 50  
+  - Gerações (*g*): 100  
+  - Taxa de Crossover: 0.8  
+  - Taxa de Mutação: 0.01
+
+- **ACO:**  
+  - Formigas (*m*): 20  
+  - Iterações (*t*): 50  
+  - Alfa (α): 1.0  
+  - Beta (β): 2.0  
+  - Taxa de Evaporação: 0.5  
+  - Q: 100.0  
+  - Feromônio Inicial: 1.0
+
+### Exemplo Prático de Complexidade (Big O) e Parâmetros
+
+Considere um problema da mochila com **n = 100 itens**.
+
+- **Algoritmo Genético (GA):**
+  - Parâmetros: população (*p*) = 50, gerações (*g*) = 100
+  - Complexidade: **O(g * p * n) = O(100 * 50 * 100) = O(500.000)**
+  - Ou seja, o algoritmo fará aproximadamente 500 mil operações principais.
+
+- **Algoritmo de Colônia de Formigas (ACO):**
+  - Parâmetros: formigas (*m*) = 20, iterações (*t*) = 50
+  - Complexidade: **O(t * m * n²) = O(50 * 20 * 100²) = O(10.000 * 10.000) = O(100.000.000)**
+  - Ou seja, o algoritmo fará aproximadamente 100 milhões de operações principais.
+
+**Resumo:**  
+Para o mesmo número de itens, o ACO tende a ser muito mais custoso computacionalmente do que o GA, principalmente porque sua complexidade cresce com o quadrado do número de itens (*n²*), enquanto o GA cresce linearmente com *n*.
+
+#### Explicação dos parâmetros no contexto do exemplo:
+
+- **População/Formigas:** Mais indivíduos ou formigas aumentam a diversidade de soluções, mas também o custo computacional.
+- **Gerações/Iterações:** Mais ciclos permitem uma busca mais refinada, mas aumentam o tempo de execução.
+- **Alfa e Beta:** Ajustam o equilíbrio entre exploração (feromônio) e exploração baseada em heurística (valor/peso).
+- **Taxa de Crossover/Mutação:** Controlam a variabilidade genética no GA, evitando convergência prematura.
+- **Taxa de Evaporação:** Evita que o feromônio se acumule excessivamente, promovendo a busca por novas soluções.
+
+> **Dica:** Para problemas maiores, recomenda-se ajustar os parâmetros de acordo com o tempo disponível e a qualidade desejada da solução. Testes empíricos são importantes para encontrar o melhor equilíbrio.
+
 ## Conclusão
 
 A aplicação desenvolvida fornece uma ferramenta interativa para explorar a resolução do Problema da Mochila utilizando tanto o Algoritmo Genético quanto o Algoritmo de Colônia de Formigas. Ela demonstra os princípios básicos de ambos os algoritmos e permite ao usuário experimentar com diferentes configurações e conjuntos de dados. As implementações servem como uma base que pode ser expandida com outros algoritmos bio-inspirados, otimizações e funcionalidades adicionais, como uma interface gráfica ou análises de desempenho mais robustas.
