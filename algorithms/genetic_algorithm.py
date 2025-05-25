@@ -1,72 +1,59 @@
+from controllers.problem_controller import ProblemController
+from typing import List, Tuple
+from models.item import Item
 import random
 
-from knapsack import funcao_aptidao
+class GeneticAlgorithm:
+    def __init__(self, params: dict):
+        self.params = params
 
-def criar_individuo(num_itens):
+    def _initialize_population(self, num_items: int) -> List[List[int]]:
+        return [[random.randint(0, 1) for _ in range(num_items)] 
+                for _ in range(self.params['population_size'])]
 
-    return [random.randint(0, 1) for _ in range(num_itens)]
+    def _selection(self, population: List[List[int]], fitness: List[float]) -> List[int]:
+        """Seleciona um indivíduo usando torneio"""
+        tournament_size = 3
+        tournament = random.sample(list(zip(population, fitness)), tournament_size)
+        return max(tournament, key=lambda x: x[1])[0]
 
-def criar_populacao_inicial(tamanho_populacao, num_itens):
+    def _crossover(self, parent1: List[int], parent2: List[int]) -> List[int]:
+        """Realiza crossover de um ponto"""
+        if random.random() < self.params['crossover_rate']:
+            point = random.randint(1, len(parent1) - 1)
+            return parent1[:point] + parent2[point:]
+        return parent1.copy()
 
-    return [criar_individuo(num_itens) for _ in range(tamanho_populacao)]
+    def _mutation(self, individual: List[int]) -> List[int]:
+        """Realiza mutação bit a bit"""
+        return [1 - bit if random.random() < self.params['mutation_rate'] else bit 
+                for bit in individual]
 
-def selecionar_pais_torneio(populacao, aptidoes, k=3):
+    def run(self, items: List[Item], capacity: int) -> Tuple[List[int], float]:
+        population = self._initialize_population(len(items))
+        best_solution = population[0]
+        best_fitness = 0.0
 
-    selecao = random.sample(list(zip(populacao, aptidoes)), k)
-    selecao.sort(key=lambda x: x[1], reverse=True)
-    return selecao[0][0]
-
-def crossover_um_ponto(pai1, pai2):
-
-    num_itens = len(pai1)
-    if num_itens < 2:
-        return pai1[:], pai2[:]
-    ponto_corte = random.randint(1, num_itens - 1)
-    filho1 = pai1[:ponto_corte] + pai2[ponto_corte:]
-    filho2 = pai2[:ponto_corte] + pai1[ponto_corte:]
-    return filho1, filho2
-
-def mutacao_bit_flip(individuo, taxa_mutacao):
-
-    mutado = individuo[:]
-    for i in range(len(mutado)):
-        if random.random() < taxa_mutacao:
-            mutado[i] = 1 - mutado[i]
-    return mutado
-
-def algoritmo_genetico(itens, capacidade_mochila, tamanho_populacao=50, num_geracoes=100, taxa_crossover=0.8, taxa_mutacao=0.01):
-
-    num_itens = len(itens)
-    populacao = criar_populacao_inicial(tamanho_populacao, num_itens)
-    
-    melhor_solucao_global = None
-    melhor_aptidao_global = -1
-
-    for geracao in range(num_geracoes):
-        aptidoes = [funcao_aptidao(itens, ind, capacidade_mochila) for ind in populacao]
-
-        for i in range(tamanho_populacao):
-            if aptidoes[i] > melhor_aptidao_global:
-                melhor_aptidao_global = aptidoes[i]
-                melhor_solucao_global = populacao[i][:]
-        
-        nova_populacao = []
-
-        if melhor_solucao_global:
-            nova_populacao.append(melhor_solucao_global[:]) 
-
-        while len(nova_populacao) < tamanho_populacao:
-            pai1 = selecionar_pais_torneio(populacao, aptidoes)
-            pai2 = selecionar_pais_torneio(populacao, aptidoes)
+        for _ in range(self.params['generations']):
+            # Calcula fitness para cada indivíduo
+            fitness = [ProblemController.fitness_function(items, ind, capacity) 
+                      for ind in population]
             
-            filho1, filho2 = pai1, pai2
-            if random.random() < taxa_crossover:
-                filho1, filho2 = crossover_um_ponto(pai1, pai2)
+            # Encontra melhor solução
+            best_idx = fitness.index(max(fitness))
+            if fitness[best_idx] > best_fitness:
+                best_fitness = fitness[best_idx]
+                best_solution = population[best_idx].copy()
             
-            nova_populacao.append(mutacao_bit_flip(filho1, taxa_mutacao))
-            if len(nova_populacao) < tamanho_populacao:
-                nova_populacao.append(mutacao_bit_flip(filho2, taxa_mutacao))
-        
-        populacao = nova_populacao
+            # Nova população
+            new_population = [best_solution]  # Elitismo
+            while len(new_population) < self.params['population_size']:
+                parent1 = self._selection(population, fitness)
+                parent2 = self._selection(population, fitness)
+                offspring = self._crossover(parent1, parent2)
+                offspring = self._mutation(offspring)
+                new_population.append(offspring)
+            
+            population = new_population
 
-    return melhor_solucao_global, melhor_aptidao_global
+        return best_solution, best_fitness

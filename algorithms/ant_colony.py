@@ -1,121 +1,80 @@
 import random
+from typing import List, Tuple
+from models.item import Item
+from controllers.problem_controller import ProblemController
+import logging
 
-from knapsack import funcao_aptidao, calcular_valor_peso_total
+# Configura logging para depuração
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-class Ant:
+class AntColonyOptimizer:
+    def __init__(self, params: dict):
+        self.params = params
 
-    def __init__(self, num_itens):
-        self.num_itens = num_itens
-        self.solucao = [0] * num_itens
-        self.peso_atual = 0
-        self.valor_atual = 0
-        self.itens_visitados_indices = []
+    class Ant:
+        def __init__(self, num_items: int):
+            self.solution = [0] * num_items
+            self.total_weight = 0
+            self.total_value = 0
 
-    def adicionar_item(self, item_index, item_obj, capacidade_mochila):
+        def add_item(self, item: Item, capacity: int) -> bool:
+            """Tenta adicionar um item à solução"""
+            if self.total_weight + item.weight <= capacity:
+                self.solution[item.index] = 1
+                self.total_weight += item.weight
+                self.total_value += item.value
+                return True
+            return False
 
-        if self.solucao[item_index] == 0 and self.peso_atual + item_obj.peso <= capacidade_mochila:
-            self.solucao[item_index] = 1
-            self.peso_atual += item_obj.peso
-            self.valor_atual += item_obj.valor
-            self.itens_visitados_indices.append(item_index)
-            return True
-        return False
-
-    def reset(self):
-        self.solucao = [0] * self.num_itens
-        self.peso_atual = 0
-        self.valor_atual = 0
-        self.itens_visitados_indices = []
-
-    def get_aptidao(self, itens, capacidade_mochila):
-
-        if self.peso_atual > capacidade_mochila:
-            return 0
-        return self.valor_atual
-
-def calcular_informacao_heuristica(itens):
-
-    heuristica = []
-    for item in itens:
-        if item.peso > 0:
-            heuristica.append(item.valor / item.peso)
-        else:
-            heuristica.append(item.valor / 0.0001 if item.valor > 0 else 0.0001) 
-    return heuristica
-
-def algoritmo_aco(itens, capacidade_mochila, num_formigas=10, num_iteracoes=50, alfa=1.0, beta=2.0, taxa_evaporacao=0.5, q=100.0, feromonio_inicial=1.0):
-
-    num_itens = len(itens)
-    if num_itens == 0:
-        return [], 0
-
-    feromonios = [feromonio_inicial] * num_itens
-    heuristica = calcular_informacao_heuristica(itens)
-
-    melhor_solucao_global = [0] * num_itens
-    melhor_aptidao_global = 0
-
-    colonia = [Ant(num_itens) for _ in range(num_formigas)]
-
-    for iteracao in range(num_iteracoes):
-        for formiga in colonia:
-            formiga.reset()
-            itens_disponiveis_indices = list(range(num_itens))
-            random.shuffle(itens_disponiveis_indices)
-
-            while True:
-                probabilidades = []
-                soma_prob_denom = 0.0
-                itens_viaveis_para_escolha = []
-
-                for i in itens_disponiveis_indices:
-                    if formiga.solucao[i] == 0 and formiga.peso_atual + itens[i].peso <= capacidade_mochila:
-
-                        tau_i = feromonios[i]
-                        eta_i = heuristica[i]
-                        prob_numerador = (tau_i ** alfa) * (eta_i ** beta)
-                        probabilidades.append((i, prob_numerador))
-                        soma_prob_denom += prob_numerador
-                        itens_viaveis_para_escolha.append(i)
-                
-                if not itens_viaveis_para_escolha or soma_prob_denom == 0:
-                    break
-
-                rand_val = random.uniform(0, soma_prob_denom)
-                soma_acumulada = 0.0
-                item_escolhido_idx = -1
-
-                for item_idx, prob_num in probabilidades:
-                    prob_item = prob_num / soma_prob_denom
-                    soma_acumulada += prob_item
-                    if rand_val <= soma_acumulada:
-                        item_escolhido_idx = item_idx
-                        break
-                
-                if item_escolhido_idx != -1:
-                    formiga.adicionar_item(item_escolhido_idx, itens[item_escolhido_idx], capacidade_mochila)
-                    itens_disponiveis_indices.remove(item_escolhido_idx)
-                else:
-                    break
+    def run(self, items: List[Item], capacity: int) -> Tuple[List[int], float]:
+        """Executa o algoritmo ACO"""
+        logger.info(f"Iniciando ACO com {len(items)} itens, capacidade {capacity}")
         
-        for formiga in colonia:
-            aptidao_atual = formiga.get_aptidao(itens, capacidade_mochila)
-            if aptidao_atual > melhor_aptidao_global:
-                melhor_aptidao_global = aptidao_atual
-                melhor_solucao_global = formiga.solucao[:]
+        # Pré-calcula densidades de valor
+        value_densities = [item.value_density() for item in items]
+        pheromones = [1.0] * len(items)
+        best_solution = [0] * len(items)
+        best_fitness = 0.0
 
-        for i in range(num_itens):
-            feromonios[i] *= (1.0 - taxa_evaporacao)
+        # Filtra itens que excedem a capacidade
+        available_indices = [i for i in range(len(items)) if items[i].weight <= capacity]
+        logger.info(f"Itens viáveis: {len(available_indices)}")
 
+        for iteration in range(self.params['iterations']):
+            logger.info(f"Iteração {iteration + 1}/{self.params['iterations']}")
+            ants = [self.Ant(len(items)) for _ in range(self.params['ants'])]
+            
+            for ant_idx, ant in enumerate(ants):
+                logger.debug(f"Construindo solução para formiga {ant_idx}")
+                current_available = available_indices.copy()
+                while current_available:
+                    probabilities = [
+                        (pheromones[i] ** self.params['alpha']) * 
+                        (value_densities[i] ** self.params['beta'])
+                        for i in current_available
+                    ]
+                    total_prob = sum(probabilities) or 1.0  # Evita divisão por zero
+                    probabilities = [p / total_prob for p in probabilities]
+                    
+                    chosen_idx = random.choices(current_available, weights=probabilities, k=1)[0]
+                    if not ant.add_item(items[chosen_idx], capacity):
+                        current_available.remove(chosen_idx)  # Remove mesmo se não adicionado
+                    else:
+                        current_available.remove(chosen_idx)
+                
+                fitness = ProblemController.fitness_function(items, ant.solution, capacity)
+                logger.debug(f"Fitness da formiga {ant_idx}: {fitness}")
+                if fitness > best_fitness:
+                    best_fitness = fitness
+                    best_solution = ant.solution.copy()
+            
+            # Atualização de feromônios
+            for i in range(len(pheromones)):
+                pheromones[i] *= (1 - self.params['evaporation'])
+                for ant in ants:
+                    if ant.solution[i] == 1:
+                        pheromones[i] += ant.total_value / 100.0
 
-        for formiga in colonia:
-            aptidao_formiga = formiga.get_aptidao(itens, capacidade_mochila)
-            if aptidao_formiga > 0:
-                for i in range(num_itens):
-                    if formiga.solucao[i] == 1:
-                        feromonios[i] += (q / (aptidao_formiga + 0.0001))
-                        feromonios[i] += (q * aptidao_formiga) / (melhor_aptidao_global + 1e-9)
-
-    return melhor_solucao_global, melhor_aptidao_global
-
-
+        logger.info(f"Melhor fitness encontrado: {best_fitness}")
+        return best_solution, best_fitness
