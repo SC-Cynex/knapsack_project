@@ -22,3 +22,17 @@ As imagens abaixo foram exportadas diretamente do Canva e representam as etapas 
 ### Slide 6 - Análise de Qualidade - Antes da Refatoração
 ![Slide 6](slides/6.png)
 
+### Slide 7 - Metas de refatoração
+![Slide 7](slides/7.png)
+
+### Slide 8 - Estrutura antes da refatoração
+![Slide 8](slides/8.png)
+
+### Slide 9 - Técnicas utilizadas
+![Slide 9](slides/9.png)
+
+### Slide 10 - Estrutura depois da refatoração
+![Slide 10](slides/10.png)
+
+### Slide 11 - Conclusão
+![Slide 11](slides/11.png)
